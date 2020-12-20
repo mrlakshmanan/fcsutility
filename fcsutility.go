@@ -17,6 +17,8 @@ const (
 	Detail    = "2"
 	Panic     = "P"
 	NoPanic   = "NP"
+	INSERT    = "INSERT"
+	UPDATE    = "UPDATE"
 )
 
 type Database struct {
@@ -33,6 +35,7 @@ type Behaviour struct {
 	DisplayDebug string
 	ProgramId    string
 	ProgramUser  string
+	ProgramName  string
 }
 
 //--------------------------------------------------------------------
@@ -146,4 +149,27 @@ func ReturnNil(s string) interface{} {
 func GetCurrentHr() string {
 	dt := time.Now()
 	return dt.Format("15")
+}
+
+//--------------------------------------------------------------------
+// function to record program start and end time details into db
+//--------------------------------------------------------------------
+func RecordRunDetails(db *sql.DB, id int, runType string, programName string, count int, cmt string) int {
+	insertedID := 0
+	if runType == INSERT {
+		insertString := "INSERT INTO SchedulerRunDetails(StartTime,ProgramName,RecordCount,comment)  values($1,$2,$3,$4);SELECT SCOPE_IDENTITY() "
+		inserterr := db.QueryRow(insertString, time.Now(), programName, count, cmt).Scan(&insertedID)
+		if inserterr != nil {
+			LogError(Panic, inserterr.Error())
+		}
+	} else if runType == UPDATE {
+		insertedID = id
+		updateString := "UPDATE SchedulerRunDetails SET EndTime=$1,RecordCount=$2,comment=$3 where id=$4 "
+		_, updateerr := db.Exec(updateString, time.Now(), count, cmt, insertedID)
+		if updateerr != nil {
+			log.Println(updateerr.Error())
+		}
+	}
+	return insertedID
+
 }
