@@ -38,6 +38,35 @@ type Behaviour struct {
 	ProgramName  string
 }
 
+type UploadMaster struct {
+	Summary          string
+	SourceCode       string
+	IsDefault        string
+	IsForceDefault   string
+	ZohoDepartmentId string
+	UploadFileName   string
+	UploadedBy       string
+	CampaignId       string
+	IsCampaign       string
+}
+
+type TicketLog struct {
+	Id                 string
+	ClientId           string
+	Description        string
+	Source             string
+	SummaryUser        string
+	TicketStatus       string
+	ZohoDepartmentId   string
+	UploadDataMasterId int
+	AssigneeId         string
+	STCode             string
+	CreatedBy          string
+	CreatedProgram     string
+	UpdatedBy          string
+	UpdatedProgram     string
+}
+
 //--------------------------------------------------------------------
 // function establishes DB connection
 //--------------------------------------------------------------------
@@ -154,22 +183,70 @@ func GetCurrentHr() string {
 //--------------------------------------------------------------------
 // function to record program start and end time details into db
 //--------------------------------------------------------------------
-func RecordRunDetails(db *sql.DB, id int, runType string, programName string, count int, cmt string) int {
+func RecordRunDetails(db *sql.DB, id int, runType string, programName string, count int, cmt string) (int, error) {
 	insertedID := 0
 	if runType == INSERT {
 		insertString := "INSERT INTO SchedulerRunDetails(StartTime,ProgramName,RecordCount,comment)  values($1,$2,$3,$4);SELECT SCOPE_IDENTITY() "
 		inserterr := db.QueryRow(insertString, time.Now(), programName, count, cmt).Scan(&insertedID)
 		if inserterr != nil {
-			LogError(Panic, inserterr.Error())
+			return insertedID, fmt.Errorf("Error while inserting SchedulerRunDetails: ", inserterr.Error())
+			//LogError(Panic, inserterr.Error())
 		}
 	} else if runType == UPDATE {
 		insertedID = id
 		updateString := "UPDATE SchedulerRunDetails SET EndTime=$1,RecordCount=$2,comment=$3 where id=$4 "
+
 		_, updateerr := db.Exec(updateString, time.Now(), count, cmt, insertedID)
 		if updateerr != nil {
-			log.Println(updateerr.Error())
+			//log.Println(updateerr.Error())
+			return insertedID, fmt.Errorf("Error while updating SchedulerRunDetails: ", updateerr.Error())
+
 		}
 	}
-	return insertedID
+	return insertedID, nil
 
+}
+
+//---------------------------------------------------------------------------------
+//Function inserts and return upload master ID
+//---------------------------------------------------------------------------------
+func InsertUploadMaster(db *sql.DB, uploadMasterRec UploadMaster) (int, error) {
+	var datetime = time.Now()
+	insertString := "INSERT INTO UploadDataMaster (Summary,SourceCode,IsDefault,IsForceDefault,ZohoDepartmentId,UploadFileName,UploadedBy,UploadDate,CampaignId,IsCampaign) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);SELECT SCOPE_IDENTITY() "
+	insertedID := 0
+	inserterr := db.QueryRow(insertString, uploadMasterRec.Summary, uploadMasterRec.SourceCode, uploadMasterRec.IsDefault, uploadMasterRec.IsForceDefault, uploadMasterRec.ZohoDepartmentId, uploadMasterRec.UploadFileName, uploadMasterRec.UploadedBy, datetime, uploadMasterRec.CampaignId, uploadMasterRec.IsCampaign).Scan(&insertedID)
+	if inserterr != nil {
+		//log.Println(inserterr)
+		return insertedID, fmt.Errorf("Error while inserting insertUploadMaster: ", inserterr.Error())
+
+	}
+	return insertedID, nil
+}
+
+//---------------------------------------------------------------------------------
+//Function inserts record into ticket log table
+//---------------------------------------------------------------------------------
+func InsertTicketLog(db *sql.DB, ticket TicketLog) error {
+	var datetime = time.Now()
+	insertString := "INSERT INTO ticketlog (ClientId,[Description],Source,Summary_User,TicketStatus,CreatedDate,ZohoDepartmentId,UploadDataMasterId,AssigneeId,STCode,CreatedBy,CreatedProgram,UpdatedBy,UpdatedDate,UpdatedProgram) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)"
+	_, inserterr := db.Exec(insertString, ticket.ClientId, ticket.Description, ticket.Source, ticket.SummaryUser, ticket.TicketStatus, datetime, ticket.ZohoDepartmentId, ticket.UploadDataMasterId, ticket.AssigneeId, ticket.STCode, ticket.CreatedBy, ticket.CreatedProgram, ticket.UpdatedBy, datetime, ticket.UpdatedProgram)
+	if inserterr != nil {
+		return fmt.Errorf("Error while inserting insertTicketLog: ", inserterr.Error())
+		//log.Println(inserterr.Error())
+	}
+	return nil
+}
+
+//---------------------------------------------------------------------------------
+//Function inserts record into ticket log table
+//---------------------------------------------------------------------------------
+func UpdateTicketLog(db *sql.DB, ticket TicketLog) error {
+	var datetime = time.Now()
+	insertString := "update TicketLog set TicketStatus=$1, AssigneeId=$2, ZohoDepartmentId=$3, stcode=$4,UpdatedBy=$5 UpdatedDate=$6,UpdatedProgram=$7 where id=$8 "
+	_, inserterr := db.Exec(insertString, ticket.TicketStatus, ticket.AssigneeId, ticket.ZohoDepartmentId, ticket.STCode, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, ticket.Id)
+	if inserterr != nil {
+		return fmt.Errorf("Error while inserting insertTicketLog: ", inserterr.Error())
+		//log.Println(inserterr.Error())
+	}
+	return nil
 }
