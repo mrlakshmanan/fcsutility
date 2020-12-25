@@ -67,6 +67,26 @@ type TicketLog struct {
 	UpdatedProgram     string
 }
 
+type EmailLogType struct {
+	Action         string
+	Id             string
+	EmailServer    string
+	Type           string
+	From           string
+	FromDspName    string
+	To             string
+	Cc             string
+	Bcc            string
+	ReplyTo        string
+	Subject        string
+	Body           string
+	CreationDate   string
+	SentDate       string
+	Status         string
+	ErrorMsg       string
+	CreatedProgram string
+}
+
 //--------------------------------------------------------------------
 // function establishes DB connection
 //--------------------------------------------------------------------
@@ -101,8 +121,10 @@ func Debug(db *sql.DB, defaultdisp string, debug string, debuglevel string, pdeb
 	vn_pdebuglevel, _ := strconv.Atoi(pdebuglevel)
 
 	if debug == "Y" && vn_debuglevel >= vn_pdebuglevel {
-		sqlString := "insert into debugtbl(debugtime,programid,programName,debugmsg) values(GETDATE(),'" + programid + "','" + program + "','" + msg + "')"
-		_, inserterr := db.Exec(sqlString)
+		sqlString := "insert into debugtbl(debugtime,programid,programName,debugmsg) values($1,$2,$3,$4)"
+		_, inserterr := db.Exec(sqlString, time.Now(), programid, program, msg)
+		//sqlString := "insert into debugtbl(debugtime,programid,programName,debugmsg) values(GETDATE(),'" + programid + "','" + program + "','" + msg + "')"
+		//_, inserterr := db.Exec(sqlString)
 		if inserterr != nil {
 			LogError(Panic, inserterr.Error())
 		}
@@ -114,14 +136,29 @@ func Debug(db *sql.DB, defaultdisp string, debug string, debuglevel string, pdeb
 // function to insert debug message into db
 //--------------------------------------------------------------------
 func Error(db *sql.DB, programid string, program string, msg string) {
-	sqlString := "insert into errortbl(errortime,programid,programName,errormsg) values(GETDATE(),'" + programid + "','" + program + "','" + msg + "')"
-	_, inserterr := db.Exec(sqlString)
+	sqlString := "insert into errortbl(errortime,programid,programName,errormsg) values($1,$2,$3,$4)"
+	_, inserterr := db.Exec(sqlString, time.Now(), programid, program, msg)
+	//sqlString := "insert into errortbl(errortime,programid,programName,errormsg) values(GETDATE(),'" + programid + "','" + program + "','" + msg + "')"
+	//_, inserterr := db.Exec(sqlString)
 	if inserterr != nil {
 		LogError(Panic, inserterr.Error())
 	} else {
 		LogError(Panic, program+" "+msg)
 	}
 
+}
+
+//--------------------------------------------------------------------
+// function to insert debug message into db
+//--------------------------------------------------------------------
+func ErrorNP(db *sql.DB, programid string, program string, msg string) {
+	sqlString := "insert into errortbl(errortime,programid,programName,errormsg) values($1,$2,$3,$4)"
+	_, inserterr := db.Exec(sqlString, time.Now(), programid, program, msg)
+	//sqlString := "insert into errortbl(errortime,programid,programName,errormsg) values(GETDATE(),'" + programid + "','" + program + "','" + msg + "')"
+	//_, inserterr := db.Exec(sqlString)
+	if inserterr != nil {
+		LogError(Panic, inserterr.Error())
+	}
 }
 
 //--------------------------------------------------------------------
@@ -242,11 +279,34 @@ func InsertTicketLog(db *sql.DB, ticket TicketLog) error {
 //---------------------------------------------------------------------------------
 func UpdateTicketLog(db *sql.DB, ticket TicketLog) error {
 	var datetime = time.Now()
-	insertString := "update TicketLog set TicketStatus=$1, AssigneeId=$2, ZohoDepartmentId=$3, stcode=$4,UpdatedBy=$5 UpdatedDate=$6,UpdatedProgram=$7 where id=$8 "
-	_, inserterr := db.Exec(insertString, ticket.TicketStatus, ticket.AssigneeId, ticket.ZohoDepartmentId, ticket.STCode, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, ticket.Id)
-	if inserterr != nil {
-		return fmt.Errorf("Error while inserting insertTicketLog: ", inserterr.Error())
-		//log.Println(inserterr.Error())
+	updateString := "update TicketLog set TicketStatus=$1, AssigneeId=$2, ZohoDepartmentId=$3, stcode=$4,UpdatedBy=$5 UpdatedDate=$6,UpdatedProgram=$7 where id=$8 "
+	_, updateerr := db.Exec(updateString, ticket.TicketStatus, ticket.AssigneeId, ticket.ZohoDepartmentId, ticket.STCode, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, ticket.Id)
+	if updateerr != nil {
+		return fmt.Errorf("Error while updating insertTicketLog: ", updateerr.Error())
+		//log.Println(updateerr.Error())
+	}
+	return nil
+}
+
+//---------------------------------------------------------------------------------
+//Function to manage record for email log table
+//---------------------------------------------------------------------------------
+func EmailLog(db *sql.DB, email EmailLogType) error {
+	var datetime = time.Now()
+	if email.Action == INSERT {
+		insertString := "INSERT INTO Emaillog (FromId,FromDspName,ToId,Cc,Bcc,Subject,Body,CreationDate,Status,CreatedProgram,EmailServer,ReplyTo) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)"
+		_, inserterr := db.Exec(insertString, email.From, email.FromDspName, email.To, email.Cc, email.Bcc, email.Subject, email.Body, datetime, "NEW", email.CreatedProgram, email.EmailServer, email.ReplyTo)
+		if inserterr != nil {
+			return fmt.Errorf("Error while inserting EmailLog: ", inserterr.Error())
+			//log.Println(inserterr.Error())
+		}
+	} else if email.Action == UPDATE {
+		updateString := "update Emaillog set SentDate=$1,Status=$2,ErrorMsg=$3 where id=$4 "
+		_, updateerr := db.Exec(updateString, email.SentDate, email.Status, email.ErrorMsg, email.Id)
+		if updateerr != nil {
+			return fmt.Errorf("Error while updating EmailLog: ", updateerr.Error())
+			//log.Println(updateerr.Error())
+		}
 	}
 	return nil
 }
