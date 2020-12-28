@@ -265,8 +265,8 @@ func InsertUploadMaster(db *sql.DB, uploadMasterRec UploadMaster) (int, error) {
 //---------------------------------------------------------------------------------
 func InsertTicketLog(db *sql.DB, ticket TicketLog) error {
 	var datetime = time.Now()
-	insertString := "INSERT INTO ticketlog (ClientId,[Description],Source,Summary_User,TicketStatus,CreatedDate,ZohoDepartmentId,UploadDataMasterId,AssigneeId,STCode,CreatedBy,CreatedProgram,UpdatedBy,UpdatedDate,UpdatedProgram) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)"
-	_, inserterr := db.Exec(insertString, ticket.ClientId, ticket.Description, ticket.Source, ticket.SummaryUser, ticket.TicketStatus, datetime, ticket.ZohoDepartmentId, ticket.UploadDataMasterId, ticket.AssigneeId, ticket.STCode, ticket.CreatedBy, ticket.CreatedProgram, ticket.UpdatedBy, datetime, ticket.UpdatedProgram)
+	insertString := "INSERT INTO ticketlog (ClientId,[Description],Source,Summary_User,TicketStatus,CreatedDate,ZohoDepartmentId,UploadDataMasterId,AssigneeId,STCode,CreatedBy,CreatedProgram,UpdatedBy,UpdatedDate,UpdatedProgram,isdeleted,Processed,Spawned) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)"
+	_, inserterr := db.Exec(insertString, ticket.ClientId, ticket.Description, ticket.Source, ticket.SummaryUser, ticket.TicketStatus, datetime, ticket.ZohoDepartmentId, ticket.UploadDataMasterId, ReturnNil(ticket.AssigneeId), ticket.STCode, ticket.CreatedBy, ticket.CreatedProgram, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, 0, 0, 0)
 	if inserterr != nil {
 		return fmt.Errorf("Error while inserting insertTicketLog: ", inserterr.Error())
 		//log.Println(inserterr.Error())
@@ -279,8 +279,8 @@ func InsertTicketLog(db *sql.DB, ticket TicketLog) error {
 //---------------------------------------------------------------------------------
 func UpdateTicketLog(db *sql.DB, ticket TicketLog) error {
 	var datetime = time.Now()
-	updateString := "update TicketLog set TicketStatus=$1, AssigneeId=$2, ZohoDepartmentId=$3, stcode=$4,UpdatedBy=$5 UpdatedDate=$6,UpdatedProgram=$7 where id=$8 "
-	_, updateerr := db.Exec(updateString, ticket.TicketStatus, ticket.AssigneeId, ticket.ZohoDepartmentId, ticket.STCode, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, ticket.Id)
+	updateString := "update TicketLog set TicketStatus=$1, AssigneeId=$2, ZohoDepartmentId=$3, stcode=$4,UpdatedBy=$5, UpdatedDate=$6,UpdatedProgram=$7 where id=$8 "
+	_, updateerr := db.Exec(updateString, ticket.TicketStatus, ReturnNil(ticket.AssigneeId), ticket.ZohoDepartmentId, ticket.STCode, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, ticket.Id)
 	if updateerr != nil {
 		return fmt.Errorf("Error while updating insertTicketLog: ", updateerr.Error())
 		//log.Println(updateerr.Error())
