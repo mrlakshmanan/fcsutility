@@ -231,7 +231,7 @@ func RecordRunDetails(db *sql.DB, id int, runType string, programName string, co
 		}
 	} else if runType == UPDATE {
 		insertedID = id
-		updateString := "UPDATE SchedulerRunDetails SET EndTime=$1,RecordCount=$2,comment=$3 where id=$4 "
+		updateString := "UPDATE SchedulerRunDetails  WITH (UPDLOCK)  SET EndTime=$1,RecordCount=$2,comment=$3 where id=$4 "
 
 		_, updateerr := db.Exec(updateString, time.Now(), count, cmt, insertedID)
 		if updateerr != nil {
@@ -279,7 +279,7 @@ func InsertTicketLog(db *sql.DB, ticket TicketLog) error {
 //---------------------------------------------------------------------------------
 func UpdateTicketLog(db *sql.DB, ticket TicketLog) error {
 	var datetime = time.Now()
-	updateString := "update TicketLog set TicketStatus=$1, AssigneeId=$2, ZohoDepartmentId=$3, stcode=$4,UpdatedBy=$5, UpdatedDate=$6,UpdatedProgram=$7 where id=$8 "
+	updateString := "update TicketLog  WITH (UPDLOCK)  set TicketStatus=$1, AssigneeId=$2, ZohoDepartmentId=$3, stcode=$4,UpdatedBy=$5, UpdatedDate=$6,UpdatedProgram=$7 where id=$8 "
 	_, updateerr := db.Exec(updateString, ticket.TicketStatus, ReturnNil(ticket.AssigneeId), ticket.ZohoDepartmentId, ticket.STCode, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, ticket.Id)
 	if updateerr != nil {
 		return fmt.Errorf("Error while updating insertTicketLog: ", updateerr.Error())
@@ -301,7 +301,7 @@ func EmailLog(db *sql.DB, email EmailLogType) error {
 			//log.Println(inserterr.Error())
 		}
 	} else if email.Action == UPDATE {
-		updateString := "update Emaillog set SentDate=$1,Status=$2,ErrorMsg=$3 where id=$4 "
+		updateString := "update Emaillog  WITH (UPDLOCK) set SentDate=$1,Status=$2,ErrorMsg=$3 where id=$4 "
 		_, updateerr := db.Exec(updateString, email.SentDate, email.Status, email.ErrorMsg, email.Id)
 		if updateerr != nil {
 			return fmt.Errorf("Error while updating EmailLog: ", updateerr.Error())
