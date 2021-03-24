@@ -273,21 +273,23 @@ func InsertTicketLog(db *sql.DB, ticket TicketLog) error {
 	}
 	return nil
 }
+
 //---------------------------------------------------------------------------------
 //Function inserts record into ticket log table
 //---------------------------------------------------------------------------------
-func InsertTicketLog2(db *sql.DB, ticket TicketLog) error, int {
+func InsertTicketLog2(db *sql.DB, ticket TicketLog) (error, int) {
 	var datetime = time.Now()
 	insertString := "INSERT INTO ticketlog (ClientId,[Description],Source,Summary_User,TicketStatus,CreatedDate,ZohoDepartmentId,UploadDataMasterId,AssigneeId,STCode,CreatedBy,CreatedProgram,UpdatedBy,UpdatedDate,UpdatedProgram,isdeleted,Processed,Spawned) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18);SELECT SCOPE_IDENTITY() "
 	insertedID := 0
-	inserterr := db.Exec(insertString, ticket.ClientId, ticket.Description, ticket.Source, ticket.SummaryUser, ticket.TicketStatus, datetime, ticket.ZohoDepartmentId, ticket.UploadDataMasterId, ReturnNil(ticket.AssigneeId), ticket.STCode, ticket.CreatedBy, ticket.CreatedProgram, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, 0, 0, 0).Scan(&insertedID)
-	
+	inserterr := db.QueryRow(insertString, ticket.ClientId, ticket.Description, ticket.Source, ticket.SummaryUser, ticket.TicketStatus, datetime, ticket.ZohoDepartmentId, ticket.UploadDataMasterId, ReturnNil(ticket.AssigneeId), ticket.STCode, ticket.CreatedBy, ticket.CreatedProgram, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, 0, 0, 0).Scan(&insertedID)
+
 	if inserterr != nil {
-		return fmt.Errorf("Error while inserting insertTicketLog: ", inserterr.Error()),insertedID
+		return fmt.Errorf("Error while inserting insertTicketLog: ", inserterr.Error()), insertedID
 		//log.Println(inserterr.Error())
 	}
-	return nil,insertedID
+	return nil, insertedID
 }
+
 //---------------------------------------------------------------------------------
 //Function inserts record into ticket log table
 //---------------------------------------------------------------------------------
