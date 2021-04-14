@@ -1,10 +1,14 @@
 package fcsutility
 
 import (
+	"archive/zip"
 	"bufio"
 	"database/sql"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -85,6 +89,10 @@ type EmailLogType struct {
 	Status         string
 	ErrorMsg       string
 	CreatedProgram string
+}
+
+type myCloser interface {
+	Close() error
 }
 
 //--------------------------------------------------------------------
@@ -325,4 +333,150 @@ func EmailLog(db *sql.DB, email EmailLogType) error {
 		}
 	}
 	return nil
+}
+
+// closeFile is a helper function which streamlines closing
+// with error checking on different file types.
+func closeFile(f myCloser) {
+	err := f.Close()
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+//--------------------------------------------------------------------
+// readCsv function reads csv []byte and convert them into a string array
+//--------------------------------------------------------------------
+func readCsvByte(file *zip.File) ([][]string, error) {
+	log.Println("readCsvByte" + "(+)")
+	var data [][]string
+	fc, err := file.Open()
+	defer closeFile(fc)
+	if err != nil {
+		log.Println("readCsvByte" + "(-)")
+		return data, err
+	} else {
+		reader := csv.NewReader(fc)
+		reader.Comma = '|'
+
+		for {
+			record, err := reader.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				// handle the error...
+				// break? continue? neither?
+			}
+			data = append(data, record)
+		}
+	}
+	log.Println("readCsvByte" + "(-)")
+	return data, nil
+}
+
+//--------------------------------------------------------------------
+// main function executed from command
+//--------------------------------------------------------------------
+func readCSVFromLocal(file string, delimitor rune) ([][]string, error) {
+	var data [][]string
+	log.Println("readCSVFromUrl" + "(+)")
+	resp, err := os.Open(file)
+	defer resp.Close()
+	if err != nil {
+		log.Println("readCSVFromUrl" + "(-)")
+		return data, err
+	}
+	reader := csv.NewReader(resp)
+	reader.Comma = delimitor
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			// handle the error...
+			// break? continue? neither?
+		}
+		data = append(data, record)
+	}
+	log.Println("readCSVFromUrl" + "(-)")
+
+	return data, nil
+}
+
+//--------------------------------------------------------------------
+// main function executed from command
+//--------------------------------------------------------------------
+func readCSVFromUrl(url string, delimitor rune) ([][]string, error) {
+	var data [][]string
+	log.Println("readCSVFromUrl" + "(+)")
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println("readCSVFromUrl" + "(-)")
+		return data, err
+	}
+	defer resp.Body.Close()
+	reader := csv.NewReader(resp.Body)
+	reader.Comma = delimitor
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			// handle the error...
+			// break? continue? neither?
+		}
+		data = append(data, record)
+	}
+	log.Println("readCSVFromUrl" + "(-)")
+
+	return data, nil
+}
+
+//--------------------------------------------------------------------
+// main function executed from command
+//--------------------------------------------------------------------
+func readCSVFromUrl2(url string, delimitor rune) ([][]string, error) {
+	var data [][]string
+	log.Println("readCSVFromUrl" + "(+)")
+
+	client := http.DefaultClient
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("User-Agent", "PostmanRuntime/7.26.10")
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Set("Connection", "keep-alive")
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+
+	//resp, err := http.Get(url)
+	if err != nil {
+		log.Println("readCSVFromUrl" + "(-)")
+		return data, err
+	}
+	defer resp.Body.Close()
+	reader := csv.NewReader(resp.Body)
+	reader.Comma = delimitor
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			// handle the error...
+			// break? continue? neither?
+		}
+		//	log.Println(record)
+		data = append(data, record)
+	}
+	log.Println("readCSVFromUrl" + "(-)")
+
+	return data, nil
 }
