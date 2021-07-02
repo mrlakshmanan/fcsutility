@@ -64,6 +64,8 @@ type TicketLog struct {
 	ZohoDepartmentId   string
 	UploadDataMasterId int
 	AssigneeId         string
+	Spawned            bool
+	Processed          bool
 	STCode             string
 	CreatedBy          string
 	CreatedProgram     string
@@ -189,13 +191,13 @@ func GetCoreSettingValue(db *sql.DB, key string) string {
 	sqlString := "select value from CoreSettings where [key] ='" + key + "'"
 	rows, err := db.Query(sqlString)
 	if err != nil {
-		LogError("P", err.Error())
+		LogError("NP", err.Error())
 	}
 	for rows.Next() {
 
 		err := rows.Scan(&value)
 		if err != nil {
-			LogError("P", err)
+			LogError("NP", err)
 		}
 
 	}
@@ -306,7 +308,21 @@ func UpdateTicketLog(db *sql.DB, ticket TicketLog) error {
 	updateString := "update TicketLog  WITH (UPDLOCK)  set TicketStatus=$1, AssigneeId=$2, ZohoDepartmentId=$3, stcode=$4,UpdatedBy=$5, UpdatedDate=$6,UpdatedProgram=$7 where id=$8 "
 	_, updateerr := db.Exec(updateString, ticket.TicketStatus, ReturnNil(ticket.AssigneeId), ticket.ZohoDepartmentId, ticket.STCode, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, ticket.Id)
 	if updateerr != nil {
-		return fmt.Errorf("Error while updating insertTicketLog: ", updateerr.Error())
+		return fmt.Errorf("Error while updating UpdateTicketLog: ", updateerr.Error())
+		//log.Println(updateerr.Error())
+	}
+	return nil
+}
+
+//---------------------------------------------------------------------------------
+//Function inserts record into ticket log table
+//---------------------------------------------------------------------------------
+func UpdateTicketLog2(db *sql.DB, ticket TicketLog) error {
+	var datetime = time.Now()
+	updateString := "update TicketLog  WITH (UPDLOCK)  set TicketStatus=$1, AssigneeId=$2, ZohoDepartmentId=$3, stcode=$4,UpdatedBy=$5, UpdatedDate=$6,UpdatedProgram=$7, spawned=$9, processed=$10,description=$11,Summary_User=$12 where id=$8 "
+	_, updateerr := db.Exec(updateString, ticket.TicketStatus, ReturnNil(ticket.AssigneeId), ticket.ZohoDepartmentId, ticket.STCode, ticket.UpdatedBy, datetime, ticket.UpdatedProgram, ticket.Id, ticket.Spawned, ticket.Processed, ticket.Description, ticket.SummaryUser)
+	if updateerr != nil {
+		return fmt.Errorf("Error while updating UpdateTicketLog: ", updateerr.Error())
 		//log.Println(updateerr.Error())
 	}
 	return nil
